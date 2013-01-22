@@ -1,0 +1,2 @@
+All code and samples in here are copyrighted by Kees Leune <kees@leune.org>.
+Look for license files in specific project folders. Unless specified, all rights reserved.
