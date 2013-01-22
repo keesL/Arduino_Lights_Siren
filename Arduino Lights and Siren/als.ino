@@ -16,7 +16,9 @@ const int STATE_OFF       = 1;
 const int STATE_RED       = 2;
 const int STATE_BLUE      = 4;
 
-// light pattern
+// light pattern:
+// each tuple contains a light state and 
+// a time (in ms) until the next state change
 const int LIGHT_PATTERN[][2] = {
   {    STATE_RED, 250      }  ,
   {    STATE_BLUE, 250     }  ,
