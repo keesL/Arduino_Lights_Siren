@@ -116,6 +116,15 @@ const int PATTERN[] = {
   STATE_OFF, 15,
 };
 
+// basic settings for the siren
+const int deviation = 300;
+const int base = 800;
+
+// these get changed every loop
+double up, down;
+int steps = 1000;
+int x = 0;
+
 // some helper variables
 const int PATTERNSIZE=sizeof(PATTERN) / sizeof(int);
 const int numRed = sizeof(RED) / sizeof(int);
@@ -146,12 +155,31 @@ void setup()
   pinMode(13, OUTPUT);
   digitalWrite(13, LOW);
 
-  // tone(AUDIO, 1500, 1000);
+  pinMode(AUDIO, OUTPUT);
 }
 
 void loop() {
+  int frequency;
   unsigned long now = millis();
   int p[2];
+  
+  // reset the siren loop
+  if (x == 0) {
+    steps = 1000+500*random(0,15);
+    up = 3.0 * deviation / steps;
+    down = -3.0 * deviation / (2 * steps);
+    x = 0;
+  }
+  
+  if (x <= steps/3) 
+    frequency = (int) (base + up * x);
+  else if (x > steps/3)
+    frequency = (int) (base + deviation + (x-steps/3)*down);
+  
+  tone(AUDIO, frequency);
+
+  x = (x + 1) % steps;
+ 
   if (now > nextPatternChange) {
     currentPatternOffset = currentPatternOffset + 2;
     currentPatternOffset = currentPatternOffset % PATTERNSIZE;
