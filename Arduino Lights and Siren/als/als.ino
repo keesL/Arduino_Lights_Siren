@@ -5,7 +5,7 @@
 // pin definitions
 const int RED[] = {2, 4};   // pins with red LEDs
 const int BLUE[] = {7, 8};  // pins with blue LEDs
-const int AUDIO = 3;          // audio output pin
+const int AUDIO = 6;          // audio output pin
 
 // LED states
 const int STATE_OFF       = 1;
