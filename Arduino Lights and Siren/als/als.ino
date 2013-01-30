@@ -1,7 +1,8 @@
 // Lightbar, siren and horn for Arduino
 // (C) 2013 by Kees Leune <kees@leune.org>
-// https://github.com/keesL/Arduino_Lights_Siren
+// https://github.com/keesL/Arduino_Lights_
 #include <EEPROM.h>
+#include <math.h>
 
 // pin definitions
 const int RED1            = 2;
@@ -29,12 +30,18 @@ const int STATE_BLUE2     = 64;
 const int PATTERN_OFF     = 0;
 const int PATTERN_ONE     = 1;
 const int PATTERN_TWO     = 2;
-const int NUMPATTERNS     = 3;
+const int PATTERN_THREE   = 3;
+const int PATTERN_FOUR    = 4;
+const int NUMPATTERNS     = 5;
 
 // sirens
 const int SIREN_OFF       = 0;
 const int SIREN_ONE       = 1;
-const int NUMSIRENS       = 2;
+const int SIREN_TWO       = 2;
+const int SIREN_THREE     = 3;
+const int SIREN_FOUR      = 4;
+const int SIREN_FIVE      = 5;
+const int NUMSIRENS       = 6;
 
 // EEPROM
 const int EEPROM_AUDIO = 0;
@@ -140,11 +147,34 @@ const int PATTERN1[] = {
 
 const int PATTERN2[] = {
   STATE_RED1, 250,
+  STATE_BLUE1, 250,
+  STATE_RED2, 250,
+  STATE_BLUE2, 250,
+  STATE_OFF, 150,
+  STATE_RED1 | STATE_BLUE1, 250,
+  STATE_OFF, 150,
+  STATE_RED2 | STATE_BLUE2, 250,
+  STATE_OFF, 150,
+  STATE_RED2 | STATE_BLUE1, 250,
+  STATE_OFF, 150,
+  STATE_RED1 | STATE_BLUE2, 250,
+  STATE_OFF, 150,
+  STATE_RED | STATE_BLUE, 250,
+  STATE_OFF, 150
+};
+
+const int PATTERN3[] = {
+  STATE_RED1, 250,
   STATE_RED2, 250,
   STATE_BLUE1, 250,
   STATE_BLUE2, 250,
   STATE_BLUE1, 250,
   STATE_RED2, 250,
+};
+
+const int PATTERN4[] = {
+  STATE_RED1 | STATE_BLUE2, 250,
+  STATE_RED2 | STATE_BLUE1, 250
 };
 
 // basic settings for the siren
@@ -155,7 +185,7 @@ const int BASE = 800;
 int audio;
 
 int x = 0;
-
+bool do_init = false;
 unsigned long nextPatternChange = 0;
 unsigned int currentPatternOffset = 0;
 
@@ -168,14 +198,14 @@ unsigned int currentPatternOffset = 0;
 void change_pattern() {
   unsigned long now = millis();
 
-  if (now - prev_pattern_change < 250) {
+  if (now - prev_pattern_change < 500) {
     return;
   }
 
   if (curr_pattern != prev_pattern) {
     tone(SIREN, 1500, 100);
     delay(100);
-    
+
     prev_pattern = curr_pattern;
     curr_pattern = curr_pattern + 1;
     curr_pattern = curr_pattern % NUMPATTERNS;
@@ -196,6 +226,16 @@ void change_pattern() {
       active_pattern = (int *) PATTERN2;
       pattern_size = sizeof(PATTERN2) / (2*sizeof(int));
       break;
+
+    case PATTERN_THREE:
+      active_pattern = (int *) PATTERN3;
+      pattern_size = sizeof(PATTERN3) / (2*sizeof(int));
+      break;
+
+    case PATTERN_FOUR:
+      active_pattern = (int *) PATTERN4;
+      pattern_size = sizeof(PATTERN4) / (2*sizeof(int));
+      break;
     }
 
     currentPatternOffset = 0;
@@ -209,14 +249,13 @@ void change_siren() {
   if (now - prev_siren_change < 500)
     return;
   if (curr_siren != prev_siren) {
-    prev_pattern = curr_siren;
+    tone(SIREN, 1000, 100);
+    delay(100);
+
+    prev_siren = curr_siren;
     curr_siren = curr_siren + 1;
     curr_siren = curr_siren % NUMSIRENS;
     prev_siren_change = now;
-
-    switch (curr_siren) {
-
-    }
   }
 }
 
@@ -227,8 +266,9 @@ void siren() {
   if (audio) {
     // reset the siren loop
     switch (curr_siren) {
-    case SIREN_ONE:
 
+      // typical US police siren
+    case SIREN_ONE:
       if (x <= 666 ) // 2000/3
         frequency = (int) (BASE + 3.0 * DEVIATION / 2000 * x);
       else 
@@ -237,10 +277,46 @@ void siren() {
       x = (x + 1) % 2000;
       tone(SIREN, frequency);
       break;
+
+      // clean sine wave
+    case SIREN_TWO:
+      frequency = (int) (BASE + DEVIATION*sin(2.0 * PI * x / 2000));
+      x = (x + 1) % 2000;
+      tone(SIREN, frequency);
+      break;
+
+      // two tone
+    case SIREN_THREE:
+      if (x < 2000) 
+        frequency = 375;
+      else
+        frequency = 500;
+      x = (x + 1) % 4000;
+      tone(SIREN, frequency);
+      break;
+
+      // phaser siren
+    case SIREN_FOUR:
+      frequency = (int) (BASE + DEVIATION*sin(2.0 * PI * x / 250));
+      x = (x + 1) % 250;
+      tone(SIREN, frequency);
+      break;       
+
+      // old fashioned three-tone Dutch ambulance
+    case SIREN_FIVE:
+      if (x < 2500) 
+        frequency = 392;
+      else if (x < 5000)
+        frequency = 659;
+      else if (x < 7500)
+        frequency = 523;
+      else 
+        frequency = 659;
+      x = (x+1) % 10000;
+      tone(SIREN, frequency);
+      break;
     }
-
   }
-
 }
 
 void setup()
@@ -275,8 +351,13 @@ void setup()
     digitalWrite(BLUE1, LOW);
   }
 
-  active_pattern = (int *) PATTERN1;
-  pattern_size = sizeof(PATTERN1) / (2 * sizeof(int));
+  prev_pattern = PATTERN_ONE;
+  curr_pattern = PATTERN_OFF;
+  active_pattern = (int *) PATTERN0;
+  pattern_size = sizeof(PATTERN0) / (2 * sizeof(int));
+  prev_siren = SIREN_ONE;
+  curr_siren = SIREN_OFF;
+  do_init = true;
 }
 
 void loop() {
@@ -284,9 +365,28 @@ void loop() {
   int ledState[maxLEDpin];
   int *p;
 
+  // signal on successful startup or reset
+  if (do_init) {
+    do_init = false;
+    for (int i=0; i<2; i++) {
+      tone(SIREN, 750, 250);
+      digitalWrite(RED1, HIGH);
+      digitalWrite(BLUE1, HIGH);
+      delay(250);
+      digitalWrite(RED2, HIGH);
+      digitalWrite(BLUE2, HIGH);
+      tone(SIREN, 1250, 250);
+      delay(250);
+      noTone(SIREN);
+      digitalWrite(RED1, LOW);
+      digitalWrite(RED2, LOW);
+      digitalWrite(BLUE1, LOW);
+      digitalWrite(BLUE2, LOW);
+    }
+  }
+
   // light state change
   if (now > nextPatternChange) {
-
     p = (int *) &active_pattern[2*currentPatternOffset];
     nextPatternChange = now + p[1];
 
@@ -330,24 +430,25 @@ void loop() {
     change_pattern();
   }
 
+  // do we need to switch the siren?
+  if (digitalRead(SIREN_SWITCH) == HIGH) {
+    change_siren();
+  }
 
+  // is audio enabled?
   if (audio) {
     if (digitalRead(BUZZER_SWITCH) == HIGH)  {
       tone(SIREN, 200, 10);
     } 
     else {
       // do we need to switch the light pattern?
-      if (digitalRead(SIREN_SWITCH) == HIGH) {
-        change_siren();
-      }
       if (digitalRead(SIREN_TOGGLE) == HIGH) {
-        //siren();
+        siren();
       } 
+      else
+        noTone(SIREN);
     }
   }
 }
 
 // EOF
-
-
-
