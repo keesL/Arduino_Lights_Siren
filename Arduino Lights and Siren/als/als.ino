@@ -35,13 +35,12 @@ const int PATTERN_FOUR    = 4;
 const int NUMPATTERNS     = 5;
 
 // sirens
-const int SIREN_OFF       = 0;
-const int SIREN_ONE       = 1;
-const int SIREN_TWO       = 2;
-const int SIREN_THREE     = 3;
-const int SIREN_FOUR      = 4;
-const int SIREN_FIVE      = 5;
-const int NUMSIRENS       = 6;
+const int SIREN_ONE       = 0;  // wail
+const int SIREN_TWO       = 1;  // sine wave
+const int SIREN_THREE     = 2;  // two-tone
+const int SIREN_FOUR      = 3;  // phaser
+const int SIREN_FIVE      = 4;  // three-tone
+const int NUMSIRENS       = 5;  
 
 // EEPROM
 const int EEPROM_AUDIO = 0;
@@ -49,17 +48,13 @@ const int EEPROM_AUDIO = 0;
 int *active_pattern;        // pointer to the array containing the active array
 int pattern_size;           // number of elements in the pattern
 
-int curr_siren = SIREN_ONE;
-int prev_siren = SIREN_OFF;
+int curr_siren = SIREN_FOUR;
+int prev_siren = SIREN_ONE;
 unsigned long prev_siren_change = 0;
 
 int prev_pattern = PATTERN_OFF;
 int curr_pattern = PATTERN_ONE;
 unsigned long prev_pattern_change = 0;
-
-boolean buzzer = false;
-unsigned long last_buzzer_on = 0;
-const int BUZZER_DURATION = 10;
 
 // Blinking pattern
 // { state (see above), duration in ms }
@@ -356,7 +351,7 @@ void setup()
   active_pattern = (int *) PATTERN0;
   pattern_size = sizeof(PATTERN0) / (2 * sizeof(int));
   prev_siren = SIREN_ONE;
-  curr_siren = SIREN_OFF;
+  curr_siren = SIREN_FOUR;
   do_init = true;
 }
 
